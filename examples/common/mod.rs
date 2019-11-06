@@ -16,6 +16,7 @@ use std::io::Read;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Duration;
+use bgfx_sys::bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8;
 
 /// Events received by the main thread, sent by the render thread.
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -52,7 +53,7 @@ impl EventQueue {
                 Event::Size(w, h) => {
                     *width = w;
                     *height = h;
-                    bgfx.reset(w, h, reset);
+                    bgfx.reset(w, h, reset, bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8 /* TODO format */);
                 }
             }
         }
@@ -150,7 +151,7 @@ pub fn run_example<M>(width: u16, height: u16, main: M)
     init_bgfx_platform(&window);
 
     // Initialize this thread as the render thread by pumping it once *before* calling bgfx::init.
-    bgfx::render_frame();
+    bgfx::render_frame(16 /* TODO */);
 
     // Spawn a new thread to use as the main thread.
     let main_thread = thread::spawn(move || {
@@ -159,11 +160,11 @@ pub fn run_example<M>(width: u16, height: u16, main: M)
 
     // Pump window events until the window is closed.
     while !process_events(&window, &event_tx) {
-        bgfx::render_frame();
+        bgfx::render_frame(16 /* TODO */);
     }
 
     // Pump the render thread until the main thread has shut down.
-    while bgfx::render_frame() != RenderFrame::NoContext {
+    while bgfx::render_frame(16 /* TODO */) != RenderFrame::NoContext {
         thread::sleep(Duration::from_millis(1));
     }
 

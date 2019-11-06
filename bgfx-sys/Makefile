@@ -4,13 +4,14 @@ rust-bindgen:
 rust-bindgen/target/release/bindgen: rust-bindgen
 	cd rust-bindgen && cargo build --release
 
-src/ffi_bgfx.rs: rust-bindgen/target/release/bindgen bgfx/include/bgfx/c99/bgfx.h bgfx/include/bgfx/c99/platform.h
+src/ffi_bgfx.rs: rust-bindgen/target/release/bindgen bgfx/include/bgfx/c99/bgfx.h
 	rust-bindgen/target/release/bindgen \
 		--constified-enum bgfx_renderer_type \
 		--constified-enum bgfx_attrib \
+		--constified-enum bgfx_attrib_type \
 		--constified-enum bgfx_render_frame \
 		-o src/ffi_bgfx.rs \
-		bgfx/include/bgfx/c99/platform.h \
+		bgfx/include/bgfx/c99/bgfx.h \
 		-- \
 		-Ibgfx/include \
 		-Ibx/include \

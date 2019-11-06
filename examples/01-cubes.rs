@@ -5,6 +5,7 @@ extern crate bgfx;
 extern crate cgmath;
 extern crate glutin;
 extern crate time;
+extern crate bgfx_sys;
 
 mod common;
 
@@ -12,7 +13,9 @@ use bgfx::*;
 use cgmath::{Angle, Decomposed, Deg, Matrix4, Point3, Quaternion, Rad, Rotation3, Transform,
              Vector3};
 use common::EventQueue;
-use time::PreciseTime;
+use time::{PreciseTime, Duration};
+use std::time::Instant;
+use bgfx_sys::{bgfx_platform_data_s, bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8};
 
 
 #[repr(packed)]
@@ -72,6 +75,9 @@ struct Cubes<'a> {
     program: Option<Program<'a>>,
     time: Option<PreciseTime>,
     last: Option<PreciseTime>,
+    frames: u32,
+    frames_per_second: u32,
+    frame_reset_next: Instant
 }
 
 impl<'a> Cubes<'a> {
@@ -90,6 +96,9 @@ impl<'a> Cubes<'a> {
             program: None,
             time: None,
             last: None,
+            frames: 0,
+            frames_per_second: 0,
+            frame_reset_next: Instant::now()
         }
     }
 
@@ -102,7 +111,7 @@ impl<'a> Cubes<'a> {
         // This is where the C++ example would call bgfx::init(). In rust we move that out of this
         // object due to lifetimes: The Cubes type cannot own both the Bgfx object, and guarantee
         // that its members are destroyed before the Bgfx object.
-        self.bgfx.reset(self.width, self.height, self.reset);
+        self.bgfx.reset(self.width, self.height, self.reset, 0); // TODO specify img
 
         // Enable debug text.
         self.bgfx.set_debug(self.debug);
@@ -136,6 +145,14 @@ impl<'a> Cubes<'a> {
 
     fn update(&mut self) -> bool {
         if !self.events.handle_events(&self.bgfx, &mut self.width, &mut self.height, self.reset) {
+            self.frames+=1;
+
+            if Instant::now() >= self.frame_reset_next {
+                self.frames_per_second = self.frames;
+                self.frames = 0;
+                self.frame_reset_next = Instant::now() + std::time::Duration::from_secs(1);
+            }
+
             let now = PreciseTime::now();
             let frame_time = self.last.unwrap_or(now).to(now);
             self.last = Some(now);
@@ -144,7 +161,7 @@ impl<'a> Cubes<'a> {
                        1_000_000.0_f64;
 
             // Use debug font to print information about this example.
-            let frame_info = format!("Frame: {:7.3}[ms]", frame_time.num_milliseconds());
+            let frame_info = format!("Frame: {:7.3}[ms] ({:3.0} FPS)", frame_time.num_milliseconds(), self.frames_per_second);
             self.bgfx.dbg_text_clear(None, None);
             self.bgfx.dbg_text_print(0, 1, 0x4f, "examples/01-cubes.rs");
             self.bgfx.dbg_text_print(0, 2, 0x6f, "Description: Rendering simple static mesh.");
@@ -208,7 +225,8 @@ impl<'a> Cubes<'a> {
 }
 
 fn example(events: EventQueue) {
-    let bgfx = bgfx::init(RendererType::Default, None, None).unwrap();
+    let platform_data = PlatformData::new();
+    let bgfx = bgfx::init(RendererType::OpenGL, platform_data, bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8 /* TODO */, 1280, 720, 0, 1, 16, None, None).unwrap();
     let mut cubes = Cubes::new(&bgfx, events);
     cubes.init();
     while cubes.update() {}

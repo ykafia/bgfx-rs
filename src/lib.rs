@@ -72,6 +72,7 @@ use std::ptr;
 pub mod flags;
 
 pub use flags::*;
+use bgfx_sys::{bgfx_init_t, bgfx_platform_data_s, bgfx_resolution_s, bgfx_texture_handle_s, bgfx_texture_format, bgfx_init_limits_s};
 
 /// Autoselect adapter.
 pub const PCI_ID_NONE: u16 = bgfx_sys::BGFX_PCI_ID_NONE;
@@ -415,7 +416,7 @@ impl<'m> Drop for VertexBuffer<'m> {
 
 /// Describes the structure of a vertex.
 pub struct VertexDecl {
-    decl: bgfx_sys::bgfx_vertex_decl_t,
+    decl: bgfx_sys::bgfx_vertex_layout_t,
 }
 
 impl VertexDecl {
@@ -437,7 +438,7 @@ impl VertexDecl {
         unsafe {
             let renderer = mem::transmute(renderer.unwrap_or(RendererType::Noop));
             let mut descr = VertexDeclBuilder { decl: mem::uninitialized() };
-            bgfx_sys::bgfx_vertex_decl_begin(&mut descr.decl, renderer);
+            bgfx_sys::bgfx_vertex_layout_begin(&mut descr.decl, renderer);
             descr
         }
     }
@@ -446,7 +447,7 @@ impl VertexDecl {
 
 /// Builder for `VertexDecl` instances.
 pub struct VertexDeclBuilder {
-    decl: bgfx_sys::bgfx_vertex_decl_t,
+    decl: bgfx_sys::bgfx_vertex_layout_t,
 }
 
 impl VertexDeclBuilder {
@@ -461,37 +462,37 @@ impl VertexDeclBuilder {
         let kind = match kind {
             AttribType::Uint8(n) => {
                 normalized = n;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_UINT8
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_UINT8
             }
             AttribType::Int8(n) => {
                 normalized = n;
                 as_int = true;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_UINT8
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_UINT8
             }
             AttribType::Uint10(n) => {
                 normalized = n;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_UINT10
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_UINT10
             }
             AttribType::Int10(n) => {
                 normalized = n;
                 as_int = true;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_UINT10
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_UINT10
             }
             AttribType::Uint16(n) => {
                 normalized = n;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_INT16
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_INT16
             }
             AttribType::Int16(n) => {
                 normalized = n;
                 as_int = true;
-                bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_INT16
+                bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_INT16
             }
-            AttribType::Half => bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_HALF,
-            AttribType::Float => bgfx_sys::bgfx_attrib_type_t::BGFX_ATTRIB_TYPE_FLOAT,
+            AttribType::Half => bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_HALF,
+            AttribType::Float => bgfx_sys::bgfx_attrib_type_BGFX_ATTRIB_TYPE_FLOAT,
         };
 
         unsafe {
-            bgfx_sys::bgfx_vertex_decl_add(&mut self.decl,
+            bgfx_sys::bgfx_vertex_layout_add(&mut self.decl,
                                            mem::transmute(attrib),
                                            count,
                                            kind,
@@ -508,7 +509,7 @@ impl VertexDeclBuilder {
     #[inline]
     pub fn end(&mut self) -> VertexDecl {
         unsafe {
-            bgfx_sys::bgfx_vertex_decl_end(&mut self.decl);
+            bgfx_sys::bgfx_vertex_layout_end(&mut self.decl);
         }
 
         VertexDecl { decl: self.decl }
@@ -518,7 +519,7 @@ impl VertexDeclBuilder {
     #[inline]
     pub fn skip(&mut self, bytes: u8) -> &mut Self {
         unsafe {
-            bgfx_sys::bgfx_vertex_decl_skip(&mut self.decl, bytes);
+            bgfx_sys::bgfx_vertex_layout_skip(&mut self.decl, bytes);
         }
 
         self
@@ -591,8 +592,8 @@ impl Bgfx {
 
     /// Resets the graphics device to the given size, with the given flags.
     #[inline]
-    pub fn reset(&self, width: u16, height: u16, reset: ResetFlags) {
-        unsafe { bgfx_sys::bgfx_reset(width as u32, height as u32, reset.bits()) }
+    pub fn reset(&self, width: u16, height: u16, reset: ResetFlags, format: u32) {
+        unsafe { bgfx_sys::bgfx_reset(width as u32, height as u32, reset.bits(), format) }
     }
 
     /// Sets the debug flags to use.
@@ -632,19 +633,19 @@ impl Bgfx {
 
     /// Sets the options to use when clearing the given view.
     #[inline]
-    pub fn set_view_clear(&self, id: u8, flags: ClearFlags, rgba: u32, depth: f32, stencil: u8) {
+    pub fn set_view_clear(&self, id: u16, flags: ClearFlags, rgba: u32, depth: f32, stencil: u8) {
         unsafe { bgfx_sys::bgfx_set_view_clear(id, flags.bits(), rgba, depth, stencil) }
     }
 
     /// Sets the rectangle to display the given view in.
     #[inline]
-    pub fn set_view_rect(&self, id: u8, x: u16, y: u16, width: u16, height: u16) {
+    pub fn set_view_rect(&self, id: u16, x: u16, y: u16, width: u16, height: u16) {
         unsafe { bgfx_sys::bgfx_set_view_rect(id, x, y, width, height) }
     }
 
     /// Sets the view and projection matrices for the given view.
     #[inline]
-    pub fn set_view_transform(&self, id: u8, view: &[f32; 16], proj: &[f32; 16]) {
+    pub fn set_view_transform(&self, id: u16, view: &[f32; 16], proj: &[f32; 16]) {
         unsafe {
             bgfx_sys::bgfx_set_view_transform(id,
                                               view.as_ptr() as *const std::os::raw::c_void,
@@ -654,13 +655,13 @@ impl Bgfx {
 
     /// Submit a primitive for rendering. Returns the number of draw calls used.
     #[inline]
-    pub fn submit(&self, view: u8, program: &Program, preserve_state: bool) -> u32 {
+    pub fn submit(&self, view: u16, program: &Program, preserve_state: bool) {
         unsafe { bgfx_sys::bgfx_submit(view, program.handle, 0, preserve_state) }
     }
 
     /// Touches a view. ( ͡° ͜ʖ ͡°)
     #[inline]
-    pub fn touch(&self, id: u8) {
+    pub fn touch(&self, id: u16) {
         unsafe {
             bgfx_sys::bgfx_touch(id);
         }
@@ -681,8 +682,8 @@ impl Drop for Bgfx {
 ///
 /// This should be called repeatedly on the render thread.
 #[inline]
-pub fn render_frame() -> RenderFrame {
-    unsafe { mem::transmute(bgfx_sys::bgfx_render_frame()) }
+pub fn render_frame(msecs: i32) -> RenderFrame {
+    unsafe { mem::transmute(bgfx_sys::bgfx_render_frame(msecs)) }
 }
 
 /// Platform data initializer.
@@ -702,7 +703,7 @@ pub fn render_frame() -> RenderFrame {
 ///     .expect("Could not set platform data");
 /// ```
 pub struct PlatformData {
-    data: bgfx_sys::bgfx_platform_data,
+    data: bgfx_sys::bgfx_platform_data_s,
 }
 
 impl PlatformData {
@@ -711,13 +712,12 @@ impl PlatformData {
     #[inline]
     pub fn new() -> PlatformData {
         PlatformData {
-            data: bgfx_sys::bgfx_platform_data {
+            data: bgfx_sys::bgfx_platform_data_s {
                 ndt: ptr::null_mut(),
                 nwh: ptr::null_mut(),
                 context: ptr::null_mut(),
                 backBuffer: ptr::null_mut(),
                 backBufferDS: ptr::null_mut(),
-                session: ptr::null_mut(),
             },
         }
     }
@@ -765,6 +765,13 @@ impl PlatformData {
 ///
 /// [`PlatformData`]: struct.PlatformData.html
 pub fn init(renderer: RendererType,
+            platform_data: PlatformData,
+            format: bgfx_texture_format,
+            width: u32,
+            height: u32,
+            reset: u32,
+            num_backbuffers: u8,
+            max_frame_latency: u8,
             vendor_id: Option<u16>,
             device_id: Option<u16>)
             -> Result<Bgfx, BgfxError> {
@@ -772,11 +779,35 @@ pub fn init(renderer: RendererType,
     let device = device_id.unwrap_or(0);
 
     unsafe {
-        let success = bgfx_sys::bgfx_init(mem::transmute(renderer),
-                                          vendor,
-                                          device,
-                                          ptr::null_mut(),
-                                          ptr::null_mut());
+        let resolution_s = bgfx_resolution_s {
+            format,
+            width,
+            height,
+            reset,
+            numBackBuffers: num_backbuffers,
+            maxFrameLatency: max_frame_latency,
+        };
+
+        let limits = bgfx_init_limits_s {
+            maxEncoders: 128,
+            transientVbSize: 0,
+            transientIbSize: 0
+        };
+
+        let init_s = &bgfx_init_t{
+            type_: renderer as u32,
+            vendorId: vendor,
+            deviceId: device,
+            debug: false,
+            profile: false,
+            platformData: platform_data.data,
+            resolution: resolution_s,
+            limits: limits,
+            callback: ptr::null_mut(),
+            allocator: ptr::null_mut()
+        };
+
+        let success = bgfx_sys::bgfx_init(init_s);
 
         if success { Ok(Bgfx::new()) } else { Err(BgfxError::InitFailed) }
     }
