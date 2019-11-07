@@ -34,6 +34,7 @@ fn build_msvc(bitness: u32) {
         "12.0" => "2013",
         "14.0" => "2015",
         "15.0" => "2017",
+        "16.0" => "2019",
         _ => panic!(format!("Unknown Visual Studio version: {:?}", vs_version)),
     };
 
