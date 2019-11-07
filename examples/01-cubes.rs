@@ -226,7 +226,7 @@ impl<'a> Cubes<'a> {
 
 fn example(events: EventQueue) {
     let platform_data = PlatformData::new();
-    let bgfx = bgfx::init(RendererType::OpenGL, platform_data, bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8 /* TODO */, 1280, 720, 0, 1, 16, None, None).unwrap();
+    let bgfx = bgfx::init(RendererType::Default, platform_data, bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8 /* TODO */, 1280, 720, 0, 1, 16, None, None).unwrap();
     let mut cubes = Cubes::new(&bgfx, events);
     cubes.init();
     while cubes.update() {}

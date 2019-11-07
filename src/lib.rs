@@ -46,7 +46,7 @@
 //! ```no_run
 //! loop {
 //!     // This is probably also where you will want to pump the window event queue.
-//!     bgfx::render_frame();
+//!     bgfx::render_frame(16);
 //! }
 //! ```
 //!
@@ -788,24 +788,31 @@ pub fn init(renderer: RendererType,
             maxFrameLatency: max_frame_latency,
         };
 
-        let limits = bgfx_init_limits_s {
-            maxEncoders: 128,
-            transientVbSize: 0,
-            transientIbSize: 0
-        };
-
-        let init_s = &bgfx_init_t{
+        let init_s = &mut bgfx_init_t{
             type_: renderer as u32,
             vendorId: vendor,
             deviceId: device,
-            debug: false,
-            profile: false,
+            debug: true,
+            profile: true,
             platformData: platform_data.data,
             resolution: resolution_s,
-            limits: limits,
+            limits: bgfx_init_limits_s{
+                maxEncoders: 0,
+                transientVbSize: 0,
+                transientIbSize: 0
+            },
             callback: ptr::null_mut(),
             allocator: ptr::null_mut()
         };
+
+        bgfx_sys::bgfx_init_ctor(init_s);
+        init_s.platformData = platform_data.data;
+        //init_s.resolution = resolution_s; // Crashes renderer on startup, probably because we're not passing a window context with it?
+        init_s.debug = true;
+        init_s.profile = true;
+        init_s.type_ = renderer as u32;
+        init_s.vendorId = vendor;
+        init_s.deviceId = device;
 
         let success = bgfx_sys::bgfx_init(init_s);
 
