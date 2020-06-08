@@ -2,6 +2,7 @@
 // License: http://opensource.org/licenses/ISC
 
 extern crate bgfx;
+extern crate bgfx_sys;
 extern crate glutin;
 extern crate libc;
 
@@ -16,7 +17,7 @@ use std::io::Read;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Duration;
-use bgfx_sys::bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8;
+use self::bgfx_sys::bgfx_texture_format_BGFX_TEXTURE_FORMAT_RGB8;
 
 /// Events received by the main thread, sent by the render thread.
 #[derive(PartialEq, Eq, Hash, Debug)]

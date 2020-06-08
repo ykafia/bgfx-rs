@@ -17,9 +17,20 @@ fn example(events: EventQueue) {
     let mut height: u16 = 720;
     let debug = DEBUG_TEXT;
     let reset = RESET_VSYNC;
-
-    let bgfx = bgfx::init(RendererType::Default, None, None).unwrap();
-    bgfx.reset(width, height, reset);
+    let pd = PlatformData::new();
+    let bgfx = bgfx::init(
+        RendererType::Default,
+        pd,
+         0,
+          width as u32,
+          height as u32,
+          0,
+          1,
+          60,
+          None,
+          None
+        ).unwrap();
+    bgfx.reset(width, height, reset, 0);
 
     // Enable debug text.
     bgfx.set_debug(debug);
