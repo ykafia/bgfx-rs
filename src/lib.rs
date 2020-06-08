@@ -393,7 +393,7 @@ impl<'m> VertexBuffer<'m> {
     #[inline]
     pub fn new<'v>(verts: Memory<'m>,
                    decl: &'v VertexDecl,
-                   flags: BufferFlags)
+                   flags: flags::BufferFlags)
                    -> VertexBuffer<'m> {
         unsafe {
             let handle = bgfx_sys::bgfx_create_vertex_buffer(verts.handle,
